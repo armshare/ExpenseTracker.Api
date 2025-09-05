@@ -26,15 +26,7 @@ new Expense{ Id = 2, Date = DateTime.Now.Date, Category = "Transport", Amount = 
         [HttpGet]
         public ActionResult<IEnumerable<Expense>> Get()
         {
-            try
-            {
-                return Ok(_expense);
-            }
-            catch (Exception)
-            {
-                _logger.LogError("Failed to execute GET");
-                return BadRequest();
-            }
+            return Ok(_expense);
         }
 
         [HttpPost]
