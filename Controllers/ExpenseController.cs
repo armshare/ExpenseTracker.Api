@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using ExpenseTracker.Api.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ExpenseTracker.Api.Controllers
@@ -12,57 +14,54 @@ namespace ExpenseTracker.Api.Controllers
     {
 
         ILogger<ExpenseController> _logger;
-        private static readonly List<Expense> _expenses = new()
-        {
-new Expense{ Id = 1, Date = DateTime.Now.Date, Category = "Food", Amount = 120.50m, Note = "Lunch"},
-new Expense{ Id = 2, Date = DateTime.Now.Date, Category = "Transport", Amount = 45.00m, Note = "Bus ticket"}
-        };
 
-        public ExpenseController(ILogger<ExpenseController> logger)
+        private readonly ExpenseDbContext _context;
+
+        public ExpenseController(ILogger<ExpenseController> logger, ExpenseDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Expense>> Get()
+        public async Task<ActionResult<IEnumerable<Expense>>> GetExpense()
         {
-            return Ok(_expenses);
-        }
-
-        [HttpPost]
-        public ActionResult<Expense> Post([FromBody] Expense expense)
-        {
-            expense.Id = _expenses.Max(e => e.Id) + 1;
-            _expenses.Add(expense);
-            return CreatedAtAction(nameof(Get), new { id = expense.Id }, expense);
+            return await _context.Expenses.ToListAsync();
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Expense> GetById(int id)
+        public async Task<ActionResult<Expense>> GetById(int id)
         {
-            var expense = _expenses.FirstOrDefault(e => e.Id == id);
+            var expense = await _context.Expenses.FindAsync(id);
             return expense is not null ? Ok(expense) : NotFound();
         }
+
+        [HttpPost]
+        public async Task<ActionResult<Expense>> Post([FromBody] Expense expense)
+        {
+            _context.Expenses.Add(expense);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetExpense), new { id = expense.Id }, expense);
+        }
+
 
         [HttpPut("{id}")]
         public IActionResult Put(int id, [FromBody] Expense updated)
         {
-            var expense = _expenses.FirstOrDefault(e => e.Id == id);
-            if (expense == null) return NotFound();
-            expense.Date = updated.Date;
-            expense.Category = updated.Category;
-            expense.Amount = updated.Amount;
-            expense.Note = updated.Note;
+            if (id != updated.Id) return BadRequest();
+            _context.Entry(updated).State = EntityState.Modified;
             return NoContent();
         }
 
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var expense = _expenses.FirstOrDefault(e => e.Id == id);
+            var expense = await _context.Expenses.FindAsync(id);
             if (expense == null) return NotFound();
-            _expenses.Remove(expense);
+
+            _context.Expenses.Remove(expense);
+            await _context.SaveChangesAsync();
             return NoContent();
         }
     }
