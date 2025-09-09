@@ -64,5 +64,47 @@ namespace ExpenseTracker.Api.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<Expense>>> SearchExpense(
+            string? category,
+            DateTime? startDate,
+            DateTime? endDate,
+            decimal? minAmount,
+            decimal? maxAmount,
+            string? sortBy = "date",
+            bool desc = false,
+            int page = 1,
+            int pageSize = 10
+        )
+        {
+            var query = _context.Expenses.AsQueryable();
+
+            if (!string.IsNullOrEmpty(category))
+                query = query.Where(e => e.Category.Contains(category));
+
+            if (startDate.HasValue)
+                query = query.Where(e => e.Date >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(e => e.Date <= endDate.Value);
+
+            if (minAmount.HasValue)
+                query = query.Where(e => e.Amount >= minAmount.Value);
+
+            if (maxAmount.HasValue)
+                query = query.Where(e => e.Amount <= maxAmount.Value);
+
+            query = sortBy?.ToLower() switch
+            {
+                "amount" => desc ? query.OrderByDescending(e => e.Amount) : query.OrderBy(e => e.Amount),
+                "category" => desc ? query.OrderByDescending(e => e.Category) : query.OrderBy(e => e.Category),
+                _ => desc ? query.OrderByDescending(e => e.Date) : query.OrderBy(e => e.Date)
+            };
+
+            query = query.Skip((page - 1) * pageSize).Take(pageSize);
+
+            return await query.ToListAsync();
+        }
     }
 }
