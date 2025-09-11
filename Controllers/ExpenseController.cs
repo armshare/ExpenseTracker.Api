@@ -46,10 +46,20 @@ namespace ExpenseTracker.Api.Controllers
 
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] Expense updated)
+        public async Task<IActionResult> Put(int id, [FromBody] Expense updated)
         {
-            if (id != updated.Id) return BadRequest();
-            _context.Entry(updated).State = EntityState.Modified;
+            if (id != updated.Id) return BadRequest("Expense ID mismatch");
+
+            var existingExpense = await _context.Expenses.FindAsync(id);
+            if (existingExpense == null)
+                return NotFound();
+
+            existingExpense.Date = updated.Date;
+            existingExpense.Category = updated.Category;
+            existingExpense.Amount = updated.Amount;
+
+            await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
