@@ -1,31 +1,45 @@
+using System.Text.Json.Serialization;
+using AutoMapper;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using ExpenseTracker.Api.Models;
+using ExpenseTracker.Api.Models.Dto;
+using ExpenseTracker.Api.Validators;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// DB
 builder.Services.AddDbContext<ExpenseDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
+// Controllers + JSON Enum as string
+builder.Services.AddControllers()
+    .AddJsonOptions(opt =>
+        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(Program));
+
+// FluentValidation modern
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<ExpenseCreateDtoValidator>();
+
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
 
 var app = builder.Build();
 
-var connection = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"[DB PATH] {Path.GetFullPath(connection)}");
-
-// Configure the HTTP request pipeline.
+// Swagger UI
 if (app.Environment.IsDevelopment())
 {
-    //app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

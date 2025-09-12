@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using ExpenseTracker.Api.Models;
+using ExpenseTracker.Api.Models.Dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,17 +18,19 @@ namespace ExpenseTracker.Api.Controllers
         ILogger<ExpenseController> _logger;
 
         private readonly ExpenseDbContext _context;
-
-        public ExpenseController(ILogger<ExpenseController> logger, ExpenseDbContext context)
+        private readonly IMapper _mapper;
+        public ExpenseController(ILogger<ExpenseController> logger, ExpenseDbContext context, IMapper mapper)
         {
             _logger = logger;
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Expense>>> GetExpense()
+        public async Task<ActionResult<IEnumerable<ExpenseDto>>> GetAll()
         {
-            return await _context.Expenses.ToListAsync();
+            var expenses = await _context.Expenses.ToListAsync();
+            return Ok(_mapper.Map<IEnumerable<ExpenseDto>>(expenses));
         }
 
         [HttpGet("{id}")]
@@ -37,11 +41,14 @@ namespace ExpenseTracker.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Expense>> Post([FromBody] Expense expense)
+        public ActionResult<ExpenseDto> Create([FromBody] ExpenseCreateDto dto)
         {
+            var expense = _mapper.Map<Expense>(dto);
             _context.Expenses.Add(expense);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetExpense), new { id = expense.Id }, expense);
+            _context.SaveChanges();
+
+            var result = _mapper.Map<ExpenseDto>(expense);
+            return CreatedAtAction(nameof(GetAll), new { id = expense.Id }, result);
         }
 
 
@@ -77,7 +84,7 @@ namespace ExpenseTracker.Api.Controllers
 
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Expense>>> SearchExpense(
-            string? category,
+            List<Category> categories,
             DateTime? startDate,
             DateTime? endDate,
             decimal? minAmount,
@@ -90,8 +97,10 @@ namespace ExpenseTracker.Api.Controllers
         {
             var query = _context.Expenses.AsQueryable();
 
-            if (!string.IsNullOrEmpty(category))
-                query = query.Where(e => e.Category.Contains(category));
+
+            if (categories != null && categories.Any())
+                query = query.Where(e => categories.Contains(e.Category));
+
 
             if (startDate.HasValue)
                 query = query.Where(e => e.Date >= startDate.Value);

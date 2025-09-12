@@ -9,7 +9,7 @@ namespace ExpenseTracker.Api.Models
         [Required]
         public DateTime Date { get; set; }
         [Required]
-        public string Category { get; set; }
+        public Category Category { get; set; }
         [Range(0.01, 100000)]
         public decimal Amount { get; set; }
         public string? Note { get; set; }
