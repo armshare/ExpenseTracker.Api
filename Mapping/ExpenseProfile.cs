@@ -9,8 +9,9 @@ namespace ExpenseTracker.Api.Mapping
 
         public ExpenseProfile()
         {
+            CreateMap<ExpenseCreateDto, Expense>()
+                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date ?? DateTime.UtcNow));
             CreateMap<Expense, ExpenseDto>();
-            CreateMap<ExpenseCreateDto, Expense>();
         }
     }
 }

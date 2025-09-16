@@ -6,6 +6,7 @@ namespace ExpenseTracker.Api.Models.Dto
         public string Description { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public Category Category { get; set; }
-        public DateTime Date { get; set; } = DateTime.UtcNow;
+        public DateTime Date { get; set; }
+        public string? Note { get; set; }
     }
 }

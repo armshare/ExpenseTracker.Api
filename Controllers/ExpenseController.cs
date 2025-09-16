@@ -41,11 +41,13 @@ namespace ExpenseTracker.Api.Controllers
         }
 
         [HttpPost]
-        public ActionResult<ExpenseDto> Create([FromBody] ExpenseCreateDto dto)
+        public async Task<ActionResult<ExpenseDto>> Create([FromBody] ExpenseCreateDto dto)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var expense = _mapper.Map<Expense>(dto);
             _context.Expenses.Add(expense);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             var result = _mapper.Map<ExpenseDto>(expense);
             return CreatedAtAction(nameof(GetAll), new { id = expense.Id }, result);
